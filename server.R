@@ -1,11 +1,3 @@
-#
-# This is the server logic of a Shiny web application. You can run the
-# application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
 
 library(shiny)
 library(rvest)
@@ -25,12 +17,10 @@ points <- clean.nba.totals[,c(1,6)]
 assists <- clean.nba.totals[,c(1,5)]
 rebounds <- clean.nba.totals[,c(1,4)]
 
-# Define server logic required to draw a histogram
 shinyServer(function(input, output) {
 
     output$distPlot <- renderPlot({
-
-        # generate bins based on input$bins from ui.R
+        
         x    <- switch(input$dist,
                        PTS = points[,2],
                        AST = assists[,2],
@@ -38,7 +28,6 @@ shinyServer(function(input, output) {
         
         bins <- seq(min(x), max(x), length.out = input$bins+1)
 
-        # draw the histogram with the specified number of bins
         hist(x, breaks = bins, col = "red", border = "blue", xlab = "Per Game Average", main = "Histogram of Selected Stat")
 
     })
