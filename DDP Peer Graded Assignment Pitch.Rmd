@@ -1,0 +1,85 @@
+---
+title: "Developing Data Products Week 4 Assignment"
+author: "Jeffrey Waitkevich"
+date: "February 22, 2020"
+output: ioslides_presentation
+---
+
+## Reproducible Pitch
+
+For the week four peer graded assignment of the Developing Data Science Coursera class, I decided to make an interactive webpage that creates histograms based on the per game averages of the three most popular statistics in baskebtall from the 2018-19 NBA Season. The app can be found at https://jwaitkevich.shinyapps.io/NBA-Per-Game-Stats-2018-19/. The code for the app can be found at https://github.com/jwaitkevich/Developing-Data-Products-Week-4-Assignment. 
+
+## Inputting the data 
+You can reproduce this data or manipulate it in a different way using this code as a guide.
+
+```{r, eval = FALSE}
+library(rvest)
+library(dplyr)
+url <- "https://www.basketball-reference.com/leagues/NBA_2019_per_game.html"
+nba.ref <- read_html(url)
+nba.ds <- nba.ref %>%
+    html_nodes(xpath='//*[@id="per_game_stats"]') %>%
+    html_table(fill = TRUE)
+nba.totals <- nba.ds[[1]]
+clean.nba.totals <- subset(nba.totals, Rk != "Rk", select = c("Rk", "Player", "Tm", "TRB", "AST", "PTS"))
+clean.nba.totals$Rk <- as.numeric(unlist(clean.nba.totals$Rk))
+clean.nba.totals$PTS <- as.numeric(clean.nba.totals$PTS)
+clean.nba.totals$TRB <- as.numeric(clean.nba.totals$TRB)
+clean.nba.totals$AST <- as.numeric(clean.nba.totals$AST)
+points <- clean.nba.totals[,c(1,6)]
+assists <- clean.nba.totals[,c(1,5)]
+rebounds <- clean.nba.totals[,c(1,4)]
+```
+
+## UI Code
+```{r, eval = FALSE}
+library(shiny)
+
+shinyUI(fluidPage(
+
+    titlePanel("NBA Per Game Stats from 2018-19 Season"),
+
+    sidebarLayout(
+        sidebarPanel(
+            radioButtons("dist", "Statistic:",
+                         c("Points" = "PTS",
+                           "Assists" = "AST",
+                           "Rebounds" = "TRB")),
+            sliderInput("bins",
+                        "Number of bins:",
+                        min = 1,
+                        max = 30,
+                        value = 10),
+        ),
+
+        mainPanel(
+            plotOutput("distPlot"),
+            textOutput("instructions")
+        )
+    )
+))
+```
+
+## Server Code
+```{r, eval = FALSE}
+shinyServer(function(input, output) {
+
+    output$distPlot <- renderPlot({
+        
+        x    <- switch(input$dist,
+                       PTS = points[,2],
+                       AST = assists[,2],
+                       TRB = rebounds[,2])
+        
+        bins <- seq(min(x), max(x), length.out = input$bins+1)
+
+        hist(x, breaks = bins, col = "red", border = "blue", xlab = "Per Game Average", main = "Histogram of Selected Stat")
+
+    })
+    
+    output$instructions <- renderText({
+        "To use this app, select which statistic from the three provided you would like to see. Then, select how many bins you want the histogram to show. The defaults are Points and 10 bins. The dataset was pulled from basketball-reference.com"
+    })
+
+})
+```
